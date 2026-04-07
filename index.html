@@ -1,3 +1,7 @@
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -471,6 +475,25 @@ function EditModal({ item, onSave, onClose }) {
     </div>
   );
 }
+
+// --- 3번에서 확인한 설정값을 여기에 넣으세요 ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDd2A2UWVheOKGiemultcT2cCZjZzeCb1I",
+  authDomain: "jeju-trip-7c84c.firebaseapp.com",
+  databaseURL: "https://jeju-trip-7c84c-default-rtdb.firebaseio.com",
+  projectId: "jeju-trip-7c84c",
+  storageBucket: "jeju-trip-7c84c.firebasestorage.app",
+  messagingSenderId: "15711040917",
+  appId: "1:15711040917:web:61b69e16e03e9c5d10f29c",
+  measurementId: "G-YFRNBKE9WN"
+};
+};
+
+// Firebase 시작
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
 
 // ─── MAIN APP ────────────────────────────────────────────────────
 function App() {

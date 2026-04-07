@@ -635,10 +635,11 @@ async function sendMessage(text) {
   try {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
+      mode: 'cors', // 이 줄을 추가하세요
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey.trim()}`,
-        "HTTP-Referer": window.location.href, // 또는 본인의 깃허브 주소
+        "HTTP-Referer": "https://localhost", // 또는 본인의 깃허브 주소
         "X-Title": "Jeju Family Trip App"
       },
       body: JSON.stringify({

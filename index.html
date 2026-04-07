@@ -488,8 +488,6 @@ const firebaseConfig = {
   measurementId: "G-YFRNBKE9WN"
 };
 
-const MY_AI_MODEL = "openrouter/free"; // 사용할 모델명
-  
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -517,16 +515,27 @@ const [apiKeyInput, setApiKeyInput] = useState("");
 
   // 1. 서버에서 데이터를 실시간으로 받아오는 부분
 useEffect(() => {
+  // 일정 데이터 불러오기
   const scheduleRef = db.ref("jeju_schedule");
-  
   scheduleRef.on("value", (snapshot) => {
     const data = snapshot.val();
+    if (data) setSchedule(data);
+  });
+
+  // ⚠️ 추가: API 키 불러오기
+  const keyRef = db.ref("openrouter_api_key");
+  keyRef.on("value", (snapshot) => {
+    const data = snapshot.val();
     if (data) {
-      setSchedule(data); // 서버에 데이터가 있으면 내 화면을 바꿈
+      setApiKey(data);      // 실제 로직용 상태
+      setApiKeyInput(data); // 설정창 표시용 상태
     }
   });
 
-  return () => scheduleRef.off();
+  return () => {
+    scheduleRef.off();
+    keyRef.off();
+  };
 }, []);
 
 useEffect(() => {
@@ -585,14 +594,21 @@ useEffect(() => {
     );
   }
 
+// App 컴포넌트 내부의 saveApiKey 함수 수정
 function saveApiKey() {
   if (!apiKeyInput.trim()) {
     alert("API 키를 입력하세요");
     return;
   }
 
-  db.ref("openrouter_api_key").set(apiKeyInput.trim());
-  alert("저장 완료!");
+  // Firebase의 'openrouter_api_key' 경로에 저장
+  db.ref("openrouter_api_key").set(apiKeyInput.trim())
+    .then(() => {
+      alert("성공적으로 저장되었습니다! 이제 AI 탭을 이용할 수 있습니다.");
+    })
+    .catch((error) => {
+      alert("저장 중 오류 발생: " + error.message);
+    });
 }
   
   const JEJU_SYSTEM_PROMPT = `당신은 제주도 가족여행 전문 AI 도우미입니다. 한국어로 친절하고 간결하게 답변하세요.
@@ -625,7 +641,7 @@ async function sendMessage(text) {
         "X-Title": "Jeju Family Trip"
       },
       body: JSON.stringify({
-        model: MY_AI_MODEL,
+        model: "arcee-ai/trinity-large-preview:free";
         messages: [
           { role: "system", content: JEJU_SYSTEM_PROMPT },
           ...messages.map(m => ({

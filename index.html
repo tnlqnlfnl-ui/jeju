@@ -570,53 +570,64 @@ useEffect(() => {
     );
   }
 
-  async function sendMessage(text) {
+ async function sendMessage(text) {
     if(!text.trim()) return;
-    if(!apiKey) { alert("설정 탭에서 OpenRouter API 키를 먼저 입력해주세요."); setTab("settings"); return; }
+
+    // 수정 포인트 1: 설정 탭을 지웠으므로, 상태값(apiKey)이 없으면 상단의 기본 키를 사용하도록 변경
+    const currentKey = apiKey || MY_DEFAULT_API_KEY;
+
+    if(!currentKey || currentKey.includes("***")) { 
+      alert("코드 상단의 MY_DEFAULT_API_KEY에 실제 키를 입력해주세요!"); 
+      return; 
+    }
+
     const userMsg = { role:"user", text };
     setMessages(prev=>[...prev, userMsg]);
     setInput("");
     setLoading(true);
+
     const locationStr = location ? `\n현재 사용자 위치: 위도 ${location.lat.toFixed(4)}, 경도 ${location.lng.toFixed(4)} (제주도 내)` : "";
+    
+    // 사용자님의 가족 구성에 맞춘 프롬프트 (재윤, 재아 언급)
     const systemPrompt = `당신은 제주도 가족여행 전문 AI 도우미입니다. 한국어로 친절하고 간결하게 답변하세요.
-여행 정보: 2026년 5월 20~23일, 창원 거주 가족, 어린 자녀 2명(32개월,12개월) 동반.
-주요 일정: 에코랜드, 드르쿰다 목장카페, 공룡사파리, 자동차박물관/항공우주박물관, 뽀로로테마파크.
+여행 정보: 2026년 5월 20~23일, 창원 거주 가족, 아이 2명(32개월 아들 재윤, 12개월 딸 재아) 동반.
+주요 일정: 에코랜드, 드르쿰다 목장카페, 공룡사파리, 자동차/항공우주박물관, 뽀로로테마파크.
 숙소: 서부/중부 제주 위주.${locationStr}
-맛집, 관광지, 코스, 날씨, 아이 동반 팁 등을 전문적으로 안내해주세요. 답변은 핵심만 간결하게.`;
+아이들과 함께하기 좋은 맛집, 수유실 정보, 유모차 가능 여부 등을 위주로 안내해주세요.`;
+
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method:"POST",
         headers:{
           "Content-Type":"application/json",
-          "Authorization":`Bearer ${apiKey}`,
-          "HTTP-Referer":"https://jeju-trip-app.local",
+          "Authorization":`Bearer ${currentKey}`, // currentKey 사용
+          "HTTP-Referer": window.location.href,
           "X-Title":"Jeju Family Trip"
         },
         body: JSON.stringify({
-          model:"arcee-ai/trinity-large-preview:free",
+          // 수정 포인트 2: 모델명을 좀 더 안정적인 google/gemini-2.0-flash-001 로 변경 추천
+          model:"google/gemini-2.0-flash-001", 
           messages:[
             {role:"system", content: systemPrompt},
-            ...messages.filter(m=>m.role!=="ai"||messages.indexOf(m)>0).map(m=>({role:m.role==="ai"?"assistant":"user", content:m.text})),
+            ...messages.map(m=>({role:m.role==="ai"?"assistant":"user", content:m.text})),
             {role:"user", content: text}
           ],
-          max_tokens:600
+          max_tokens:800
         })
       });
+
       const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || "답변을 가져오지 못했어요. 다시 시도해주세요.";
+      
+      if(data.error) throw new Error(data.error.message);
+
+      const reply = data.choices?.?.message?.content || "답변을 가져오지 못했어요. 다시 시도해주세요.";
       setMessages(prev=>[...prev, {role:"ai", text:reply}]);
     } catch(e) {
-      setMessages(prev=>[...prev, {role:"ai", text:"오류가 발생했어요. API 키와 네트워크를 확인해주세요."}]);
+      console.error(e);
+      setMessages(prev=>[...prev, {role:"ai", text:"오류가 발생했어요: " + e.message}]);
     }
     setLoading(false);
   }
-
-  function saveApiKey() {
-    localStorage.setItem("or_api_key", apiKeyInput);
-    setApiKey(apiKeyInput);
-    alert("API 키가 저장되었습니다! ✅");
-  }
-
   const SUGGESTIONS = [
     "4일차 서부제주 추천","에코랜드 꿀팁","아이 동반 맛집","뽀로로파크 주변 점심","제주 5월 날씨","렌터카 주의사항"
   ];

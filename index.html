@@ -544,7 +544,7 @@ function App() {
           "X-Title":"Jeju Family Trip"
         },
         body: JSON.stringify({
-          model:"google/gemini-2.0-flash-exp:free",
+          model:"qwen/qwen3.6-plus:free",
           messages:[
             {role:"system", content: systemPrompt},
             ...messages.filter(m=>m.role!=="ai"||messages.indexOf(m)>0).map(m=>({role:m.role==="ai"?"assistant":"user", content:m.text})),

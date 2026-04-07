@@ -593,7 +593,7 @@ useEffect(() => {
           "X-Title":"Jeju Family Trip"
         },
         body: JSON.stringify({
-          model:"meta-llama/llama-3.3-70b-instruct:free",
+          model:"qwen/qwen3.6-plus:free",
           messages:[
             {role:"system", content: systemPrompt},
             ...messages.filter(m=>m.role!=="ai"||messages.indexOf(m)>0).map(m=>({role:m.role==="ai"?"assistant":"user", content:m.text})),

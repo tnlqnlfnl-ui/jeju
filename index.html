@@ -487,20 +487,18 @@ const firebaseConfig = {
   appId: "1:15711040917:web:61b69e16e03e9c5d10f29c",
   measurementId: "G-YFRNBKE9WN"
 };
-};
+const MY_DEFAULT_API_KEY = "sk-or-v1-........................."; 
 
-// Firebase 시작
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // ─── MAIN APP ────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState("home");
   const [activeDay, setActiveDay] = useState("day0");
-  const [schedule, setSchedule] = useState(() => {const saved = localStorage.getItem("jeju_schedule");
-                                                  return saved ? JSON.parse(saved) : INITIAL_SCHEDULE;});
+  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+  const [isLoaded, setIsLoaded] = useState(false); // 서버 데이터를 한 번이라도 가져왔는지 확인용
+
   const [accoms, setAccoms] = useState(ACCOMMODATIONS);
   const [editItem, setEditItem] = useState(null);
   const [messages, setMessages] = useState([
@@ -508,24 +506,36 @@ function App() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(()=>localStorage.getItem("or_api_key")||"");
-  const [apiKeyInput, setApiKeyInput] = useState(()=>localStorage.getItem("or_api_key")||"");
   const [location, setLocation] = useState(null);
   const chatEndRef = useRef(null);
 
   // --- 여기서부터 복사 ---
   // [데이터 자동 저장 로직]
   // schedule(일정) 데이터가 변경될 때마다 브라우저(localStorage)에 저장함
+// [로직 1] 서버(Firebase)에서 데이터 실시간으로 받아오기
   useEffect(() => {
-    localStorage.setItem("jeju_schedule", JSON.stringify(schedule));
-    console.log("일정이 브라우저에 저장되었습니다.");
-  }, [schedule]);
+    const scheduleRef = db.ref("jeju_schedule");
+    
+    // 서버의 데이터가 바뀌면(누가 연필로 수정하면) 내 앱 화면도 즉시 갱신
+    scheduleRef.on("value", (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setSchedule(data);
+        setIsLoaded(true); // 서버에서 데이터를 무사히 가져왔음을 표시
+      }
+    });
 
-  // apiKey(API 키)가 변경될 때마다 브라우저에 저장함
+    return () => scheduleRef.off(); // 연결 해제
+  }, []);
+
+  // [로직 2] 내가 앱에서 수정하면 서버(Firebase)에 업로드하기
   useEffect(() => {
-    localStorage.setItem("or_api_key", apiKey);
-  }, [apiKey]);
-  // --- 여기까지 붙여넣기 ---
+    // 서버 데이터를 한 번이라도 가져온 이후에만(isLoaded) 서버에 덮어쓰기 시작
+    if (isLoaded) {
+      db.ref("jeju_schedule").set(schedule);
+      localStorage.setItem("jeju_schedule", JSON.stringify(schedule)); // 백업용
+    }
+  }, [schedule, isLoaded]);
 
   useEffect(()=>{
     chatEndRef.current?.scrollIntoView({behavior:"smooth"});

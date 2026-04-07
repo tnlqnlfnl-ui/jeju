@@ -593,7 +593,7 @@ useEffect(() => {
           "X-Title":"Jeju Family Trip"
         },
         body: JSON.stringify({
-          model:"meta-llama/llama-3.3-70b-instruct:free",
+          model:"openrouter/free",
           messages:[
             {role:"system", content: systemPrompt},
             ...messages.filter(m=>m.role!=="ai"||messages.indexOf(m)>0).map(m=>({role:m.role==="ai"?"assistant":"user", content:m.text})),
@@ -777,7 +777,7 @@ useEffect(() => {
             <div style={{marginTop:20}}>
               <div className="settings-label" style={{fontSize:13,fontWeight:700,marginBottom:8}}>사용 가능한 무료 모델</div>
               {[
-                {name:"meta-llama/llama-3.3-70b-instruct:free", desc:"추천 · 빠르고 한국어 우수"},
+                {name:"openrouter/free", desc:"추천 · 빠르고 한국어 우수"},
               ].map(m=>(
                 <div key={m.name} style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                   <div style={{fontSize:12,fontWeight:600,color:'var(--jeju-teal)'}}>{m.name}</div>

@@ -643,7 +643,7 @@ async function sendMessage(text) {
         "X-Title": "Jeju Family Trip App"
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "nvidia/nemotron-3-super-120b-a12b:free",
         messages: [
           { role: "system", content: JEJU_SYSTEM_PROMPT },
           ...messages.map(m => ({
@@ -842,7 +842,7 @@ async function sendMessage(text) {
             <div style={{marginTop:20}}>
               <div className="settings-label" style={{fontSize:13,fontWeight:700,marginBottom:8}}>사용 가능한 무료 모델</div>
               {[
-                {name:"meta-llama/llama-3.3-70b-instruct:free", desc:"추천 · 빠르고 한국어 우수"},
+                {name:"nvidia/nemotron-3-super-120b-a12b:free", desc:"추천 · 빠르고 한국어 우수"},
               ].map(m=>(
                 <div key={m.name} style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                   <div style={{fontSize:12,fontWeight:600,color:'var(--jeju-teal)'}}>{m.name}</div>

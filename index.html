@@ -487,8 +487,8 @@ const firebaseConfig = {
   appId: "1:15711040917:web:61b69e16e03e9c5d10f29c",
   measurementId: "G-YFRNBKE9WN"
 };
-const MY_DEFAULT_API_KEY="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"; 
-const MY_AI_MODEL="arcee-ai/trinity-large-preview:free"; // 사용할 모델명
+
+const MY_AI_MODEL = "openrouter/free"; // 사용할 모델명
   
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
@@ -498,8 +498,8 @@ const db = firebase.database();
 // ─── MAIN APP ────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState("home");
-  const [apiKey, setApiKey] = useState(MY_DEFAULT_API_KEY); // 이 줄이 반드시 있어야 합니다!
-  const [apiKeyInput, setApiKeyInput] = useState(MY_DEFAULT_API_KEY); // 설정탭 입력용
+  const [apiKey, setApiKey] = useState("");
+const [apiKeyInput, setApiKeyInput] = useState("");
   
   const [activeDay, setActiveDay] = useState("day0");
   const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
@@ -529,6 +529,20 @@ useEffect(() => {
   return () => scheduleRef.off();
 }, []);
 
+useEffect(() => {
+  const keyRef = db.ref("openrouter_api_key");
+
+  keyRef.on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      setApiKey(data);
+      setApiKeyInput(data);
+    }
+  });
+
+  return () => keyRef.off();
+}, []);
+  
 // 2. 내가 수정하면 서버에 바로 저장하는 부분 (isLoaded 조건 삭제)
 useEffect(() => {
   // 앱이 처음 켜질 때 INITIAL_SCHEDULE을 서버에 덮어쓰는 걸 방지하기 위해 
@@ -570,6 +584,17 @@ useEffect(() => {
       () => alert("위치 권한을 허용해주세요.")
     );
   }
+
+function saveApiKey() {
+  if (!apiKeyInput.trim()) {
+    alert("API 키를 입력하세요");
+    return;
+  }
+
+  db.ref("openrouter_api_key").set(apiKeyInput.trim());
+  alert("저장 완료!");
+}
+  
   const JEJU_SYSTEM_PROMPT = `당신은 제주도 가족여행 전문 AI 도우미입니다. 한국어로 친절하고 간결하게 답변하세요.
 여행 정보: 2026년 5월 20~23일, 창원 거주 가족, 아이 2명(32개월 아들 재윤, 12개월 딸 재아) 동반.
 주요 일정: 에코랜드, 드르쿰다 목장카페, 공룡사파리, 자동차/항공우주박물관, 뽀로로테마파크.
@@ -577,6 +602,13 @@ useEffect(() => {
 아이들과 함께하기 좋은 맛집, 수유실 정보, 유모차 가능 여부 등을 위주로 안내해주세요. 답변은 핵심만 간결하게 하세요.`;
   
 async function sendMessage(text) {
+  if (!apiKey) {
+  setMessages(prev => [...prev, {
+    role: "ai",
+    text: "⚠️ 설정탭에서 API 키를 먼저 입력해주세요."
+  }]);
+  return;
+}
   if (!text.trim() || loading) return;
 
   const userMsg = { role: "user", text: text };
@@ -589,7 +621,6 @@ async function sendMessage(text) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${MY_DEFAULT_API_KEY.trim()}`,
         "HTTP-Referer": window.location.href,
         "X-Title": "Jeju Family Trip"
       },
@@ -812,6 +843,7 @@ async function sendMessage(text) {
           {id:"home", icon:"🏠", label:"홈"},
           {id:"schedule", icon:"📅", label:"일정"},
           {id:"ai", icon:"🤖", label:"AI"},
+          {id:"settings", icon:"⚙️", label:"설정"}
           ].map(t=>(
           <button key={t.id} className={`tab-btn ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
             <span className="icon">{t.icon}</span>{t.label}

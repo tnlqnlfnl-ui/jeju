@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <meta name="apple-mobile-web-app-title" content="제주여행"/>
-<title>🌊 제주 가족여행 2025</title>
+<title>🌊 제주 가족여행 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
 <style>
   :root {
@@ -380,7 +380,7 @@ const ACCOMMODATIONS = [
 const TAG_COLORS = { "메인":"tag-main","서브":"tag-sub","숙소":"tag-sleep","미정":"tag-pending","키즈":"tag-main","비행기":"tag-sub","이동":"tag-sleep","카페":"tag-sub","자연":"tag-main" };
 
 function getDday() {
-  const target = new Date("2025-05-20");
+  const target = new Date("2026-05-20");
   const now = new Date();
   const diff = Math.ceil((target - now) / (1000*60*60*24));
   if(diff > 0) return `D-${diff}`;
@@ -476,7 +476,8 @@ function EditModal({ item, onSave, onClose }) {
 function App() {
   const [tab, setTab] = useState("home");
   const [activeDay, setActiveDay] = useState("day0");
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
+  const [schedule, setSchedule] = useState(() => {const saved = localStorage.getItem("jeju_schedule");
+                                                  return saved ? JSON.parse(saved) : INITIAL_SCHEDULE;});
   const [accoms, setAccoms] = useState(ACCOMMODATIONS);
   const [editItem, setEditItem] = useState(null);
   const [messages, setMessages] = useState([
@@ -488,6 +489,20 @@ function App() {
   const [apiKeyInput, setApiKeyInput] = useState(()=>localStorage.getItem("or_api_key")||"");
   const [location, setLocation] = useState(null);
   const chatEndRef = useRef(null);
+
+  // --- 여기서부터 복사 ---
+  // [데이터 자동 저장 로직]
+  // schedule(일정) 데이터가 변경될 때마다 브라우저(localStorage)에 저장함
+  useEffect(() => {
+    localStorage.setItem("jeju_schedule", JSON.stringify(schedule));
+    console.log("일정이 브라우저에 저장되었습니다.");
+  }, [schedule]);
+
+  // apiKey(API 키)가 변경될 때마다 브라우저에 저장함
+  useEffect(() => {
+    localStorage.setItem("or_api_key", apiKey);
+  }, [apiKey]);
+  // --- 여기까지 붙여넣기 ---
 
   useEffect(()=>{
     chatEndRef.current?.scrollIntoView({behavior:"smooth"});
@@ -530,7 +545,7 @@ function App() {
     setLoading(true);
     const locationStr = location ? `\n현재 사용자 위치: 위도 ${location.lat.toFixed(4)}, 경도 ${location.lng.toFixed(4)} (제주도 내)` : "";
     const systemPrompt = `당신은 제주도 가족여행 전문 AI 도우미입니다. 한국어로 친절하고 간결하게 답변하세요.
-여행 정보: 2025년 5월 20~23일, 창원 거주 가족, 어린 자녀 2명 동반.
+여행 정보: 2026년 5월 20~23일, 창원 거주 가족, 어린 자녀 2명(32개월,12개월) 동반.
 주요 일정: 에코랜드, 드르쿰다 목장카페, 공룡사파리, 자동차박물관/항공우주박물관, 뽀로로테마파크.
 숙소: 서부/중부 제주 위주.${locationStr}
 맛집, 관광지, 코스, 날씨, 아이 동반 팁 등을 전문적으로 안내해주세요. 답변은 핵심만 간결하게.`;
@@ -577,7 +592,7 @@ function App() {
       <header className="header">
         <div>
           <div className="header-title">🌊 제주 가족여행</div>
-          <div className="header-sub">2025.05.20 – 05.23 · 창원 출발</div>
+          <div className="header-sub">2026.05.20 – 05.23 · 창원 출발</div>
         </div>
         <div className="header-dday">{getDday()}</div>
       </header>

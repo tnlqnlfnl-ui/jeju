@@ -497,6 +497,9 @@ const db = firebase.database();
 // ─── MAIN APP ────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState("home");
+  const [apiKey, setApiKey] = useState(MY_DEFAULT_API_KEY); // 이 줄이 반드시 있어야 합니다!
+  const [apiKeyInput, setApiKeyInput] = useState(MY_DEFAULT_API_KEY); // 설정탭 입력용
+  
   const [activeDay, setActiveDay] = useState("day0");
   const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
   const [isLoaded, setIsLoaded] = useState(false); // 서버 데이터를 한 번이라도 가져왔는지 확인용
@@ -774,9 +777,7 @@ useEffect(() => {
             <div style={{marginTop:20}}>
               <div className="settings-label" style={{fontSize:13,fontWeight:700,marginBottom:8}}>사용 가능한 무료 모델</div>
               {[
-                {name:"google/gemini-2.0-flash-exp:free", desc:"추천 · 빠르고 한국어 우수"},
-                {name:"meta-llama/llama-3.3-70b-instruct:free", desc:"성능 우수"},
-                {name:"deepseek/deepseek-chat-v3-0324:free", desc:"한국어 무난"},
+                {name:"gmeta-llama/llama-3.3-70b-instruct:free", desc:"추천 · 빠르고 한국어 우수"},
               ].map(m=>(
                 <div key={m.name} style={{padding:'8px 0',borderBottom:'1px solid var(--border)'}}>
                   <div style={{fontSize:12,fontWeight:600,color:'var(--jeju-teal)'}}>{m.name}</div>

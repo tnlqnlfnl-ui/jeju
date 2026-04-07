@@ -511,33 +511,29 @@ function App() {
   const [location, setLocation] = useState(null);
   const chatEndRef = useRef(null);
 
-  // --- 여기서부터 복사 ---
-  // [데이터 자동 저장 로직]
-  // schedule(일정) 데이터가 변경될 때마다 브라우저(localStorage)에 저장함
-// [로직 1] 서버(Firebase)에서 데이터 실시간으로 받아오기
-  useEffect(() => {
-    const scheduleRef = db.ref("jeju_schedule");
-    
-    // 서버의 데이터가 바뀌면(누가 연필로 수정하면) 내 앱 화면도 즉시 갱신
-    scheduleRef.on("value", (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setSchedule(data);
-        setIsLoaded(true); // 서버에서 데이터를 무사히 가져왔음을 표시
-      }
-    });
-
-    return () => scheduleRef.off(); // 연결 해제
-  }, []);
-
-  // [로직 2] 내가 앱에서 수정하면 서버(Firebase)에 업로드하기
-  useEffect(() => {
-    // 서버 데이터를 한 번이라도 가져온 이후에만(isLoaded) 서버에 덮어쓰기 시작
-    if (isLoaded) {
-      db.ref("jeju_schedule").set(schedule);
-      localStorage.setItem("jeju_schedule", JSON.stringify(schedule)); // 백업용
+  // 1. 서버에서 데이터를 실시간으로 받아오는 부분
+useEffect(() => {
+  const scheduleRef = db.ref("jeju_schedule");
+  
+  scheduleRef.on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      setSchedule(data); // 서버에 데이터가 있으면 내 화면을 바꿈
     }
-  }, [schedule, isLoaded]);
+  });
+
+  return () => scheduleRef.off();
+}, []);
+
+// 2. 내가 수정하면 서버에 바로 저장하는 부분 (isLoaded 조건 삭제)
+useEffect(() => {
+  // 앱이 처음 켜질 때 INITIAL_SCHEDULE을 서버에 덮어쓰는 걸 방지하기 위해 
+  // schedule이 기본값과 다를 때만 저장하도록 조건을 겁니다.
+  if (JSON.stringify(schedule) !== JSON.stringify(INITIAL_SCHEDULE)) {
+    db.ref("jeju_schedule").set(schedule);
+    localStorage.setItem("jeju_schedule", JSON.stringify(schedule));
+  }
+}, [schedule]);
 
   useEffect(()=>{
     chatEndRef.current?.scrollIntoView({behavior:"smooth"});

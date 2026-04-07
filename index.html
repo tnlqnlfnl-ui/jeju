@@ -1,6 +1,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -796,8 +797,7 @@ function App() {
           {id:"home", icon:"🏠", label:"홈"},
           {id:"schedule", icon:"📅", label:"일정"},
           {id:"ai", icon:"🤖", label:"AI"},
-          onClick={() => setT
-        ].map(t=>(
+          ].map(t=>(
           <button key={t.id} className={`tab-btn ${tab===t.id?"active":""}`} onClick={()=>setTab(t.id)}>
             <span className="icon">{t.icon}</span>{t.label}
           </button>

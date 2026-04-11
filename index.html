@@ -594,9 +594,7 @@ useEffect(() => {
   
 // 2. 내가 수정하면 서버에 바로 저장하는 부분 (isLoaded 조건 삭제)
 useEffect(() => {
-  // 앱이 처음 켜질 때 INITIAL_SCHEDULE을 서버에 덮어쓰는 걸 방지하기 위해 
-  // schedule이 기본값과 다를 때만 저장하도록 조건을 겁니다.
-  if (JSON.stringify(schedule) !== JSON.stringify(INITIAL_SCHEDULE)) {
+    if (!db) return;
     // 1. 일정 데이터 로드
     db.ref("jeju_schedule").on("value", (snap) => {
       if (snap.val()) setSchedule(snap.val());

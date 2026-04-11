@@ -374,6 +374,12 @@ const INITIAL_SCHEDULE = {
   }
 };
 
+// [추가] 초기 항공 데이터 정의
+const INITIAL_FLIGHTS = {
+  outbound: { dir: "🛫 가는 편", from: "김해공항", fromCode: "PUS", to: "제주공항", toCode: "CJU", dep: "14:30", arr: "15:35", no: "7C513" },
+  inbound: { dir: "🛬 오는 편", from: "제주공항", fromCode: "CJU", to: "김해공항", toCode: "PUS", dep: "14:50", arr: "15:55", no: "7C514" }
+};
+  
 const ACCOMMODATIONS = [
   { id:"a1", name:"선흘 키즈풀빌라", day:"1일차", type:"confirmed", memo:"첫날 확정", lat:33.5278, lng:126.7194 },
   { id:"a2", name:"모먼트 빌리지", day:"2~3일차 후보①", type:"candidate", memo:"", lat:33.3984, lng:126.2429 },
@@ -403,10 +409,18 @@ function openTmap(name, lat, lng) {
 
 // ─── COMPONENTS ──────────────────────────────────────────────────
 
-function FlightCard({ dir, from, fromCode, to, toCode, dep, arr }) {
+// [교체] flight 객체를 통째로 받고 편집 버튼을 추가함
+function FlightCard({ flight, onEdit }) {
+  const { dir, from, fromCode, to, toCode, dep, arr, no } = flight;
   return (
-    <div className="flight-card">
-      <div className="flight-label">{dir}</div>
+    <div className="flight-card" style={{position:'relative'}}>
+      <button 
+        onClick={() => onEdit(flight)} 
+        style={{position:'absolute', top:10, right:10, background:'rgba(255,255,255,0.2)', color:'#fff', border:'none', borderRadius:4, fontSize:10, padding:'4px 8px', cursor:'pointer'}}
+      >
+        편집
+      </button>
+      <div className="flight-label">{dir} {no && `[${no}]`}</div>
       <div className="flight-row">
         <div className="flight-airport">
           <div className="code">{fromCode}</div>
@@ -495,6 +509,9 @@ const db = firebase.database();
 
 // ─── MAIN APP ────────────────────────────────────────────────────
 function App() {
+  // [추가] App 컴포넌트 상단
+const [flights, setFlights] = useState(INITIAL_FLIGHTS);
+const [editFlight, setEditFlight] = useState(null); // 항공 수정 팝업 제어용
   const [tab, setTab] = useState("home");
   const [apiKey, setApiKey] = useState("");
 const [apiKeyInput, setApiKeyInput] = useState("");
@@ -715,8 +732,9 @@ async function sendMessage(text) {
                 <div className="overview-item"><div className="ov-num">6+</div><div className="ov-label">방문 장소</div></div>
               </div>
             </div>
-            <FlightCard dir="🛫 가는 편" from="김해공항" fromCode="PUS" to="제주공항" toCode="CJU" dep="14:30" arr="15:35" />
-            <FlightCard dir="🛬 오는 편" from="제주공항" fromCode="CJU" to="김해공항" toCode="PUS" dep="14:50" arr="15:55" />
+            // [수정] 속성 전달 방식 변경
+<FlightCard flight={flights.outbound} onEdit={setEditFlight} />
+<FlightCard flight={flights.inbound} onEdit={setEditFlight} />
             <div className="section-label">숙소 현황</div>
             <div className="card">
               {accoms.map(a=>(

@@ -780,7 +780,6 @@ async function sendMessage(text) {
                     <div style={{flex: 1}}>
                       {/* 숙소 이름 및 삭제 버튼 */}
                       <div style={{display:'flex', alignItems:'center', gap:8, marginBottom: 8}}>
-<div style={{display:'flex', alignItems:'center', gap:8, marginBottom: 8}}>
   <div className="accom-name" style={{fontSize: '16px', fontWeight: 'bold'}}>{a.name}</div>
   {/* 편집 버튼 추가 */}
   <button onClick={() => setEditAccom(a)} style={{background:'none', border:'none', fontSize:14, cursor:'pointer', padding:0, color: '#00a896'}}>✏️</button>
@@ -988,7 +987,45 @@ async function sendMessage(text) {
     </div>
   </div>
 )}
+{/* 숙소 정보 수정 모달 */}
+{editAccom && (
+  <div className="modal-overlay" onClick={() => setEditAccom(null)}>
+    <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-title">숙소 정보 수정</div>
+      
+      <div className="modal-label">숙소 이름</div>
+      <input 
+        className="modal-input" 
+        value={editAccom.name} 
+        onChange={e => setEditAccom({...editAccom, name: e.target.value})} 
+      />
+      
+      <div className="modal-label">홈페이지 주소 (URL)</div>
+      <input 
+        className="modal-input" 
+        value={editAccom.url} 
+        onChange={e => setEditAccom({...editAccom, url: e.target.value})} 
+      />
 
+      <div className="modal-label">메모 (날짜 등)</div>
+      <input 
+        className="modal-input" 
+        value={editAccom.day || ""} 
+        onChange={e => setEditAccom({...editAccom, day: e.target.value})} 
+        placeholder="예: 1~2일차"
+      />
+
+      <div className="modal-btns">
+        <button className="modal-btn-cancel" onClick={() => setEditAccom(null)}>취소</button>
+        <button className="modal-btn-save" onClick={() => {
+          const next = accoms.map(acc => acc.id === editAccom.id ? editAccom : acc);
+          saveAccoms(next);
+          setEditAccom(null);
+        }}>저장하기</button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

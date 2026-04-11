@@ -512,6 +512,10 @@ function App() {
   // [추가] App 컴포넌트 상단
 const [flights, setFlights] = useState(INITIAL_FLIGHTS);
 const [editFlight, setEditFlight] = useState(null); // 항공 수정 팝업 제어용
+const saveFlights = (newFlights) => {
+  setFlights(newFlights);
+  db.ref("jeju_flights").set(newFlights); // Firebase에도 저장
+};
   const [tab, setTab] = useState("home");
   const [apiKey, setApiKey] = useState("");
 const [apiKeyInput, setApiKeyInput] = useState("");
@@ -538,6 +542,9 @@ useEffect(() => {
     const data = snapshot.val();
     if (data) setSchedule(data);
   });
+db.ref("jeju_flights").on("value", (snap) => {
+  if (snap.val()) setFlights(snap.val());
+});
 
   // ⚠️ 추가: API 키 불러오기
   const keyRef = db.ref("openrouter_api_key");
@@ -888,6 +895,47 @@ async function sendMessage(text) {
       </nav>
 
       {editItem && <EditModal item={editItem} onSave={handleEditSave} onClose={()=>setEditItem(null)} />}
+      {/* [추가] 항공 정보 수정 모달 */}
+{editFlight && (
+  <div className="modal-overlay" onClick={() => setEditFlight(null)}>
+    <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-title">{editFlight.dir} 수정</div>
+      
+      <div className="modal-label">항공기 번호</div>
+      <input 
+        className="modal-input" 
+        value={editFlight.no} 
+        onChange={e => setEditFlight({...editFlight, no: e.target.value})} 
+      />
+      
+      <div className="modal-label">출발 시간</div>
+      <input 
+        className="modal-input" 
+        value={editFlight.dep} 
+        onChange={e => setEditFlight({...editFlight, dep: e.target.value})} 
+      />
+
+      <div className="modal-label">도착 시간</div>
+      <input 
+        className="modal-input" 
+        value={editFlight.arr} 
+        onChange={e => setEditFlight({...editFlight, arr: e.target.value})} 
+      />
+
+      <div className="modal-btns">
+        <button className="modal-btn-cancel" onClick={() => setEditFlight(null)}>취소</button>
+        <button className="modal-btn-save" onClick={() => {
+          const next = { ...flights };
+          // 어느 쪽(가는편/오는편)인지 판단해서 업데이트
+          const key = editFlight.dir.includes("가는") ? "outbound" : "inbound";
+          next[key] = editFlight;
+          saveFlights(next);
+          setEditFlight(null);
+        }}>저장하기</button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

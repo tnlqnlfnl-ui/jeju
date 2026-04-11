@@ -374,13 +374,11 @@ const INITIAL_SCHEDULE = {
   }
 };
 
-const INITIAL_FLIGHTS = {
-  outbound: { dir: "🛫 가는 편", from: "김해공항", fromCode: "PUS", to: "제주공항", toCode: "CJU", dep: "14:30", arr: "15:35", no: "7C513" },
-  inbound: { dir: "🛬 오는 편", from: "제주공항", fromCode: "CJU", to: "김해공항", toCode: "PUS", dep: "14:50", arr: "15:55", no: "7C514" }
-};
-  
 const ACCOMMODATIONS = [
   { id:"a1", name:"선흘 키즈풀빌라", day:"1일차", type:"confirmed", memo:"첫날 확정", lat:33.5278, lng:126.7194 },
+  { id:"a2", name:"모먼트 빌리지", day:"2~3일차 후보①", type:"candidate", memo:"", lat:33.3984, lng:126.2429 },
+  { id:"a3", name:"가족키즈펜션 M", day:"2~3일차 후보②", type:"candidate", memo:"", lat:33.4500, lng:126.5700 },
+  { id:"a4", name:"웨스티하우스", day:"2~3일차 후보③", type:"candidate", memo:"", lat:33.3600, lng:126.3100 },
 ];
 
 const TAG_COLORS = { "메인":"tag-main","서브":"tag-sub","숙소":"tag-sleep","미정":"tag-pending","키즈":"tag-main","비행기":"tag-sub","이동":"tag-sleep","카페":"tag-sub","자연":"tag-main" };
@@ -395,29 +393,20 @@ function getDday() {
 }
 
 function openTmap(name, lat, lng) {
-  if (lat && lng) {
-    const tmapAppUrl = `tmap://route?rGoalName=${encodeURIComponent(name)}&rGoaly=${lat}&rGoalx=${lng}`;
-    const tmapWebUrl = `https://www.tmap.co.kr/tmap2/mobile/route.jsp?name=${encodeURIComponent(name)}&lat=${lat}&lon=${lng}`;
-    const start = Date.now();
-    window.location.href = tmapAppUrl;
-    setTimeout(() => { if (Date.now() - start < 1500) window.open(tmapWebUrl, "_blank"); }, 1000);
-  } else {
-    // ⚠️ 좌표가 없는 경우: 네이버 지도 검색으로 자동 연결
-    window.open(`https://map.naver.com/v5/search/${encodeURIComponent(name)}`, "_blank");
-  }
+  const tmapAppUrl = `tmap://route?rGoalName=${encodeURIComponent(name)}&rGoaly=${lat}&rGoalx=${lng}`;
+  const tmapWebUrl = `https://www.tmap.co.kr/tmap2/mobile/route.jsp?name=${encodeURIComponent(name)}&lat=${lat}&lon=${lng}`;
+  const start = Date.now();
+  window.location.href = tmapAppUrl;
+  setTimeout(() => { if (Date.now() - start < 1500) window.open(tmapWebUrl, "_blank"); }, 1000);
 }
 
 
 // ─── COMPONENTS ──────────────────────────────────────────────────
 
-function FlightCard({ flight, onEdit }) { // 매개변수 flight로 변경
-  const { dir, from, fromCode, to, toCode, dep, arr, no } = flight;
+function FlightCard({ dir, from, fromCode, to, toCode, dep, arr }) {
   return (
-    <div className="flight-card" style={{position:'relative'}}>
-      {/* 편집 버튼 추가 */}
-      <button onClick={() => onEdit(flight)} style={{position:'absolute', top:10, right:10, background:'rgba(255,255,255,0.2)', color:'#fff', border:'none', borderRadius:4, fontSize:10, padding:'4px 8px'}}>편집</button>
-      
-      <div className="flight-label">{dir} {no && `[${no}]`}</div>
+    <div className="flight-card">
+      <div className="flight-label">{dir}</div>
       <div className="flight-row">
         <div className="flight-airport">
           <div className="code">{fromCode}</div>
@@ -447,14 +436,6 @@ function ScheduleItem({ item, onEdit }) {
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div className="schedule-name">{item.name}</div>
           <button onClick={()=>onEdit(item)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'16px',padding:'0 0 0 8px',color:'#aaa'}}>✏️</button>
-          // ✏️ 버튼 코드 바로 뒤에 추가하세요 (약 173번 줄 근처)
-<button onClick={() => onEdit(item)} ...>✏️</button>
-<button onClick={() => {
-  if(confirm("이 일정을 삭제할까요?")) {
-    // 삭제 로직 호출 (이 함수는 부모에서 전달받아야 함)
-    onDelete(item.id); 
-  }
-}} style={{background:'none', border:'none', cursor:'pointer', fontSize:'16px', padding:'0 8px', color:'#ff6b6b'}}>🗑️</button>
         </div>
         {item.memo && <div className="schedule-memo">{item.memo}</div>}
         <div className="schedule-tags">
@@ -540,11 +521,6 @@ useEffect(() => {
     const data = snapshot.val();
     if (data) setSchedule(data);
   });
-
-  db.ref("jeju_chat").on("value", (snapshot) => {
-  const data = snapshot.val();
-  if (data) setMessages(data);
-});
 
   // ⚠️ 추가: API 키 불러오기
   const keyRef = db.ref("openrouter_api_key");
@@ -688,14 +664,9 @@ async function sendMessage(text) {
     }
 
     // 🔥 핵심 수정 (여기 중요)
-// sendMessage 함수 내 AI 답변을 성공적으로 받은 구역 (약 353번 줄 근처)
-if (data.choices && data.choices.length > 0) {
-  const reply = data.choices.message.content;
-  const newMessages = [...messages, userMsg, { role: "ai", text: reply }];
-  setMessages(newMessages);
-  // 🔥 추가: 서버에 채팅 내역 저장
-  db.ref("jeju_chat").set(newMessages);
-}
+    if (data.choices && data.choices.length > 0) {
+      const reply = data.choices[0].message.content;
+      setMessages(prev => [...prev, { role: "ai", text: reply }]);
     } else {
       throw new Error("응답 구조 이상");
     }
@@ -746,17 +717,7 @@ if (data.choices && data.choices.length > 0) {
             </div>
             <FlightCard dir="🛫 가는 편" from="김해공항" fromCode="PUS" to="제주공항" toCode="CJU" dep="14:30" arr="15:35" />
             <FlightCard dir="🛬 오는 편" from="제주공항" fromCode="CJU" to="김해공항" toCode="PUS" dep="14:50" arr="15:55" />
-            <div className="section-label" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-  <span>숙소 현황</span>
-  <button onClick={() => {
-    const name = prompt("새로운 숙소 이름:");
-    if(name) {
-      const newAccoms = [...accoms, { id: Date.now(), name, day: "추가 일정", type: "candidate" }];
-      setAccoms(newAccoms);
-      db.ref("jeju_accoms").set(newAccoms); // 서버 저장
-    }
-  }} style={{background:'var(--jeju-teal)', color:'#fff', border:'none', borderRadius:4, padding:'2px 8px', fontSize:10}}>+ 숙소 추가</button>
-</div>
+            <div className="section-label">숙소 현황</div>
             <div className="card">
               {accoms.map(a=>(
                 <div key={a.id} className={`accom-card ${a.type}`}>

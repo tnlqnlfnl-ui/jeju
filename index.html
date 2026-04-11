@@ -753,6 +753,7 @@ async function sendMessage(text) {
 
 <FlightCard flight={flights.outbound} onEdit={setEditFlight} />
 <FlightCard flight={flights.inbound} onEdit={setEditFlight} />
+
 {/* 1. 숙소 헤더: 추가 버튼 포함 */}
 <div className="section-label" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
   <span>🏠 숙소 현황</span>
@@ -805,12 +806,17 @@ async function sendMessage(text) {
           </span>
           {a.type==="candidate" && (
             <button onClick={()=>confirmAccom(a.id)} style={{background:'none',border:'1px solid var(--jeju-teal)',color:'var(--jeju-teal)',borderRadius:8,padding:'2px 8px',fontSize:11,fontWeight:700,cursor:'pointer'}}>확정</button>
-          )}
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
+  )}
+
+                </div>
+
+              ))}
+
+            </div>
+
+          </>
+
+        )}
 
         {/* ── SCHEDULE ── */}
         {tab==="schedule" && (

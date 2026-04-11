@@ -551,114 +551,100 @@ const [apiKeyInput, setApiKeyInput] = useState("");
   const chatEndRef = useRef(null);
 
   // 1. 서버에서 데이터를 실시간으로 받아오는 부분
-useEffect(() => {
-  // 일정 데이터 불러오기
-  const scheduleRef = db.ref("jeju_schedule");
-  scheduleRef.on("value", (snapshot) => {
-    const data = snapshot.val();
-    if (data) setSchedule(data);
-  });
-db.ref("jeju_flights").on("value", (snap) => {
-  if (snap.val()) setFlights(snap.val());
-});
-
-  // ⚠️ 추가: API 키 불러오기
-  const keyRef = db.ref("openrouter_api_key");
-  keyRef.on("value", (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      setApiKey(data);      // 실제 로직용 상태
-      setApiKeyInput(data); // 설정창 표시용 상태
-    }
-  });
-
-  return () => {
-    scheduleRef.off();
-    keyRef.off();
-  };
-}, []);
-
-useEffect(() => {
-  const keyRef = db.ref("openrouter_api_key");
-
-  keyRef.on("value", (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      setApiKey(data);
-      setApiKeyInput(data);
-    }
-  });
-
-  return () => keyRef.off();
-}, []);
-  
-// 2. 내가 수정하면 서버에 바로 저장하는 부분 (isLoaded 조건 삭제)
-useEffect(() => {
+// 1. 서버 데이터 실시간 로드 (모든 데이터를 이 하나의 useEffect에서 관리합니다)
+  useEffect(() => {
     if (!db) return;
-    // 1. 일정 데이터 로드
-    db.ref("jeju_schedule").on("value", (snap) => {
+
+    // 일정 데이터 로드
+    const scheduleRef = db.ref("jeju_schedule");
+    scheduleRef.on("value", (snap) => {
       if (snap.val()) setSchedule(snap.val());
     });
 
-    // 2. 항공 데이터 로드
-    db.ref("jeju_flights").on("value", (snap) => {
+    // 항공 데이터 로드
+    const flightsRef = db.ref("jeju_flights");
+    flightsRef.on("value", (snap) => {
       if (snap.val()) setFlights(snap.val());
     });
 
-    // 3. 숙소 데이터 로드
-    db.ref("jeju_accoms").on("value", (snap) => {
+    // 숙소 데이터 로드
+    const accomsRef = db.ref("jeju_accoms");
+    accomsRef.on("value", (snap) => {
       if (snap.val()) setAccoms(snap.val());
     });
+
+    // API 키 로드
+    const keyRef = db.ref("openrouter_api_key");
+    keyRef.on("value", (snap) => {
+      if (snap.val()) {
+        setApiKey(snap.val());
+        setApiKeyInput(snap.val());
+      }
+    });
+
+    // 채팅 내역 로드
+    const chatRef = db.ref("jeju_chat");
+    chatRef.on("value", (snap) => {
+      if (snap.val()) setMessages(snap.val());
+    });
+
+    return () => {
+      scheduleRef.off();
+      flightsRef.off();
+      accomsRef.off();
+      keyRef.off();
+      chatRef.off();
+    };
   }, []);
- 
-  useEffect(()=>{
-    chatEndRef.current?.scrollIntoView({behavior:"smooth"});
+
+  // 채팅 스크롤 자동 이동
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  function confirmAccom(id) {
-    setAccoms(prev => prev.map(a =>
-      a.day.startsWith("2~3") ? {...a, type: a.id===id ? "confirmed":"candidate"} : a
-    ));
-  }
+  // 일정 저장 공통 함수
+  const saveSchedule = (newSchedule) => {
+    setSchedule(newSchedule);
+    db.ref("jeju_schedule").set(newSchedule);
+  };
 
+  // 일정 삭제 함수
+  const deleteScheduleItem = (itemId) => {
+    if (!confirm("이 일정을 삭제하시겠습니까?")) return;
+    const next = { ...schedule };
+    next[activeDay].items = next[activeDay].items.filter(i => i.id !== itemId);
+    saveSchedule(next);
+  };
+
+  // 일정 수정 저장
   function handleEditSave(updated) {
-    setSchedule(prev => {
-      const next = {...prev};
-      for(const dk of Object.keys(next)) {
-        next[dk] = {...next[dk], items: next[dk].items.map(i => i.id===updated.id ? updated : i)};
-      }
-      return next;
-    });
+    const next = { ...schedule };
+    for (const dk of Object.keys(next)) {
+      next[dk] = { ...next[dk], items: next[dk].items.map(i => i.id === updated.id ? updated : i) };
+    }
+    saveSchedule(next);
     setEditItem(null);
   }
 
+  // 위치 정보 가져오기
   function getLocation() {
-    if(!navigator.geolocation) { alert("위치 접근 불가"); return; }
+    if (!navigator.geolocation) { alert("위치 접근 불가"); return; }
     navigator.geolocation.getCurrentPosition(
       pos => {
-        setLocation({lat: pos.coords.latitude, lng: pos.coords.longitude});
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         alert(`📍 위치 가져옴: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}\nAI 질문 시 자동 포함됩니다.`);
       },
       () => alert("위치 권한을 허용해주세요.")
     );
   }
 
-// App 컴포넌트 내부의 saveApiKey 함수 수정
-function saveApiKey() {
-  if (!apiKeyInput.trim()) {
-    alert("API 키를 입력하세요");
-    return;
+  // API 키 저장
+  function saveApiKey() {
+    if (!apiKeyInput.trim()) { alert("API 키를 입력하세요"); return; }
+    db.ref("openrouter_api_key").set(apiKeyInput.trim())
+      .then(() => alert("성공적으로 저장되었습니다!"))
+      .catch((error) => alert("저장 중 오류 발생: " + error.message));
   }
-
-  // Firebase의 'openrouter_api_key' 경로에 저장
-  db.ref("openrouter_api_key").set(apiKeyInput.trim())
-    .then(() => {
-      alert("성공적으로 저장되었습니다! 이제 AI 탭을 이용할 수 있습니다.");
-    })
-    .catch((error) => {
-      alert("저장 중 오류 발생: " + error.message);
-    });
-}
   
   const JEJU_SYSTEM_PROMPT = `당신은 제주도 가족여행 전문 AI 도우미입니다. 한국어로 친절하고 간결하게 답변하세요.
 여행 정보: 2026년 5월 20~23일, 창원 거주 가족, 아이 2명(32개월 아들 재윤, 12개월 딸 재아) 동반.

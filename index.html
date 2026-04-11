@@ -516,17 +516,21 @@ const saveFlights = (newFlights) => {
 };
 
 const saveAccoms = (newAccoms) => {
-  setAccoms(newAccoms);
-  db.ref("jeju_accoms").set(newAccoms);
-};
+    setAccoms(newAccoms);
+    db.ref("jeju_accoms").set(newAccoms); 
+  };
 
+  const deleteAccom = (id) => {
+    if (confirm("이 숙소를 목록에서 삭제할까요?")) {
+      const next = accoms.filter(a => a.id !== id);
+      saveAccoms(next);
+    }
+  };
 
-const deleteAccom = (id) => {
-  if (confirm("이 숙소를 목록에서 삭제할까요?")) {
-    const next = accoms.filter(a => a.id !== id);
+  const confirmAccom = (id) => {
+    const next = accoms.map(a => a.id === id ? { ...a, type: 'confirmed' } : a);
     saveAccoms(next);
-  }
-};
+  };
   
   const [tab, setTab] = useState("home");
   const [apiKey, setApiKey] = useState("");
@@ -593,11 +597,22 @@ useEffect(() => {
   // 앱이 처음 켜질 때 INITIAL_SCHEDULE을 서버에 덮어쓰는 걸 방지하기 위해 
   // schedule이 기본값과 다를 때만 저장하도록 조건을 겁니다.
   if (JSON.stringify(schedule) !== JSON.stringify(INITIAL_SCHEDULE)) {
-    db.ref("jeju_schedule").set(schedule);
-    localStorage.setItem("jeju_schedule", JSON.stringify(schedule));
-  }
-}, [schedule]);
+    // 1. 일정 데이터 로드
+    db.ref("jeju_schedule").on("value", (snap) => {
+      if (snap.val()) setSchedule(snap.val());
+    });
 
+    // 2. 항공 데이터 로드
+    db.ref("jeju_flights").on("value", (snap) => {
+      if (snap.val()) setFlights(snap.val());
+    });
+
+    // 3. 숙소 데이터 로드
+    db.ref("jeju_accoms").on("value", (snap) => {
+      if (snap.val()) setAccoms(snap.val());
+    });
+  }, []);
+ 
   useEffect(()=>{
     chatEndRef.current?.scrollIntoView({behavior:"smooth"});
   }, [messages, loading]);

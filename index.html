@@ -382,9 +382,6 @@ const INITIAL_FLIGHTS = {
   
 const ACCOMMODATIONS = [
   { id:"a1", name:"선흘 키즈풀빌라", day:"1일차", type:"confirmed", memo:"첫날 확정", lat:33.5278, lng:126.7194 },
-  { id:"a2", name:"모먼트 빌리지", day:"2~3일차 후보①", type:"candidate", memo:"", lat:33.3984, lng:126.2429 },
-  { id:"a3", name:"가족키즈펜션 M", day:"2~3일차 후보②", type:"candidate", memo:"", lat:33.4500, lng:126.5700 },
-  { id:"a4", name:"웨스티하우스", day:"2~3일차 후보③", type:"candidate", memo:"", lat:33.3600, lng:126.3100 },
 ];
 
 const TAG_COLORS = { "메인":"tag-main","서브":"tag-sub","숙소":"tag-sleep","미정":"tag-pending","키즈":"tag-main","비행기":"tag-sub","이동":"tag-sleep","카페":"tag-sub","자연":"tag-main" };
@@ -516,6 +513,20 @@ const saveFlights = (newFlights) => {
   setFlights(newFlights);
   db.ref("jeju_flights").set(newFlights); // Firebase에도 저장
 };
+
+const saveAccoms = (newAccoms) => {
+  setAccoms(newAccoms);
+  db.ref("jeju_accoms").set(newAccoms);
+};
+
+
+const deleteAccom = (id) => {
+  if (confirm("이 숙소를 목록에서 삭제할까요?")) {
+    const next = accoms.filter(a => a.id !== id);
+    saveAccoms(next);
+  }
+};
+  
   const [tab, setTab] = useState("home");
   const [apiKey, setApiKey] = useState("");
 const [apiKeyInput, setApiKeyInput] = useState("");
@@ -742,13 +753,44 @@ async function sendMessage(text) {
 
 <FlightCard flight={flights.outbound} onEdit={setEditFlight} />
 <FlightCard flight={flights.inbound} onEdit={setEditFlight} />
-            <div className="section-label">숙소 현황</div>
+            <div className="section-label" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+  <span>🏠 숙소 현황</span>
+  <button onClick={() => {
+    const name = prompt("숙소 이름을 입력하세요:");
+    const url = prompt("홈페이지 주소(http 포함)를 입력하세요:", "https://");
+    if(name) {
+      const newAccoms = [...accoms, { id: Date.now(), name, url, type: "candidate" }];
+      saveAccoms(newAccoms);
+    }
+  }} style={{background:'var(--jeju-teal)', color:'#fff', border:'none', borderRadius:4, padding:'4px 10px', fontSize:11, cursor:'pointer'}}>
+    + 숙소 추가
+  </button>
+</div>
+            
             <div className="card">
               {accoms.map(a=>(
                 <div key={a.id} className={`accom-card ${a.type}`}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                     <div>
-                      <div className="accom-name">{a.name}</div>
+                      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+  <div className="accom-name">{a.name}</div>
+  {/* 삭제 버튼 추가 */}
+  <button onClick={() => deleteAccom(a.id)} style={{background:'none', border:'none', fontSize:16, cursor:'pointer', padding:'0 5px'}}>🗑️</button>
+</div>
+
+<div style={{marginTop:8}}>
+  {a.url ? (
+    <button 
+      className="tmap-btn" 
+      style={{background:'#f0f0f0', color:'#333', border:'1px solid #ddd'}} 
+      onClick={() => window.open(a.url, "_blank")}
+    >
+      🏠 홈페이지 바로가기
+    </button>
+  ) : (
+    <div style={{fontSize:11, color:'#999', textAlign:'center', padding:'8px'}}>등록된 링크가 없습니다.</div>
+  )}
+</div>
                       <div className="accom-meta">{a.day}</div>
                       {a.memo && <div className="accom-meta">{a.memo}</div>}
                     </div>

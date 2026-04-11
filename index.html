@@ -975,14 +975,17 @@ async function sendMessage(text) {
 
       <div className="modal-btns">
         <button className="modal-btn-cancel" onClick={() => setEditFlight(null)}>취소</button>
-        <button className="modal-btn-save" onClick={() => {
-          const next = { ...flights };
-          // 어느 쪽(가는편/오는편)인지 판단해서 업데이트
-          const key = editFlight.dir.includes("가는") ? "outbound" : "inbound";
-          next[key] = editFlight;
-          saveFlights(next);
-          setEditFlight(null);
-        }}>저장하기</button>
+<button className="modal-btn-save" style={{background:'var(--jeju-teal)'}} onClick={() => {
+  const next = { ...flights };
+  // 어느 쪽(가는편/오는편)인지 판별
+  const key = editFlight.dir.includes("가는") ? "outbound" : "inbound";
+  next[key] = editFlight;
+  
+  setFlights(next); // 화면 반영
+  if (db) db.ref("jeju_flights").set(next); // 🔥 Firebase 저장 추가
+  setEditFlight(null);
+  alert("항공 정보가 저장되었습니다.");
+}}>저장하기</button>
       </div>
     </div>
   </div>
@@ -1017,11 +1020,11 @@ async function sendMessage(text) {
 
       <div className="modal-btns">
         <button className="modal-btn-cancel" onClick={() => setEditAccom(null)}>취소</button>
-        <button className="modal-btn-save" onClick={() => {
-          const next = accoms.map(acc => acc.id === editAccom.id ? editAccom : acc);
-          saveAccoms(next);
-          setEditAccom(null);
-        }}>저장하기</button>
+<button className="modal-btn-save" onClick={() => {
+  const next = accoms.map(acc => acc.id === editAccom.id ? editAccom : acc);
+  saveAccoms(next); // 위에서 만든 saveAccoms 함수 호출 (자동 저장 포함)
+  setEditAccom(null);
+}}>저장하기</button>
       </div>
     </div>
   </div>

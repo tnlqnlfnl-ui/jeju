@@ -454,6 +454,16 @@ function ScheduleItem({ item, onEdit }) {
             <span key={t} className={`tag ${TAG_COLORS[t]||'tag-main'}`}>{t}</span>
           ))}
         </div>
+        {/* 기존 태그 출력 코드 아래에 추가 */}
+{item.lat && (
+  <button 
+    className="tmap-btn" 
+    onClick={() => openTmap(item.name, item.lat, item.lng)}
+    style={{marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #eee', background: '#fff', cursor: 'pointer'}}
+  >
+    🗺️ 티맵으로 안내
+  </button>
+)}
         {item.lat && (
           <button className="tmap-btn" onClick={()=>openTmap(item.name, item.lat, item.lng)}>
             🗺 티맵으로 안내
@@ -900,6 +910,21 @@ async function sendMessage(text) {
 
         {/* ── AI CHAT ── */}
         {tab==="ai" && (
+      <div className="chat-container">
+    {/* 상단 삭제 버튼 추가 */}
+    <div style={{padding: '10px', display: 'flex', justifyContent: 'flex-end'}}>
+      <button 
+        onClick={() => {
+          if(confirm("전체 대화 내역을 삭제하시겠습니까?")) {
+            setMessages([]);
+            db.ref("jeju_chat").remove();
+          }
+        }}
+        style={{fontSize: '11px', color: '#999', background: 'none', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px'}}
+      >
+        대화 전체 삭제 🗑️
+      </button>
+    </div>
           <div className="chat-container">
             <div className="suggestions">
               {SUGGESTIONS.map(s=>(

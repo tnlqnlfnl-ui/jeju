@@ -847,7 +847,8 @@ const [apiKeyInput, setApiKeyInput] = useState("");
   function handleEditSave(updated) {
     const next = { ...schedule };
     for (const dk of Object.keys(next)) {
-      next[dk] = { ...next[dk], items: next[dk].items.map(i => i.id === updated.id ? updated : i) };
+      const replaced = next[dk].items.map(i => i.id === updated.id ? updated : i);
+      next[dk] = { ...next[dk], items: sortByTime(replaced) };
     }
     saveSchedule(next);
     setEditItem(null);

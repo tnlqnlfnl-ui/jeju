@@ -438,7 +438,7 @@ function FlightCard({ flight, onEdit }) {
   );
 }
 
-function ScheduleItem({ item, onEdit }) {
+function ScheduleItem({ item, onEdit, onDelete }) {
   return (
     <div className="schedule-item">
       <div className="schedule-time">{item.time}</div>
@@ -446,7 +446,10 @@ function ScheduleItem({ item, onEdit }) {
       <div className="schedule-body">
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
           <div className="schedule-name">{item.name}</div>
-          <button onClick={()=>onEdit(item)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'16px',padding:'0 0 0 8px',color:'#aaa'}}>✏️</button>
+          <div style={{display:'flex',gap:2,flexShrink:0}}>
+            <button onClick={()=>onEdit(item)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'15px',padding:'0 4px',color:'#aaa'}}>✏️</button>
+            <button onClick={()=>onDelete(item.id)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'15px',padding:'0 4px',color:'#ffaaaa'}}>🗑️</button>
+          </div>
         </div>
         {item.memo && <div className="schedule-memo">{item.memo}</div>}
         <div className="schedule-tags">
@@ -1090,7 +1093,7 @@ async function sendMessage(text) {
             <div className="card">
               <div className="card-title">{schedule[activeDay].label} · {schedule[activeDay].date}</div>
               {schedule[activeDay].items.map(item=>(
-                <ScheduleItem key={item.id} item={item} onEdit={setEditItem} />
+                <ScheduleItem key={item.id} item={item} onEdit={setEditItem} onDelete={deleteScheduleItem} />
               ))}
             </div>
             <div style={{padding:'0 12px'}}>

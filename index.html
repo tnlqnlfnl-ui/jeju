@@ -454,16 +454,6 @@ function ScheduleItem({ item, onEdit }) {
             <span key={t} className={`tag ${TAG_COLORS[t]||'tag-main'}`}>{t}</span>
           ))}
         </div>
-        {/* 기존 태그 출력 코드 아래에 추가 */}
-{item.lat && (
-  <button 
-    className="tmap-btn" 
-    onClick={() => openTmap(item.name, item.lat, item.lng)}
-    style={{marginTop: '10px', width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #eee', background: '#fff', cursor: 'pointer'}}
-  >
-    🗺️ 티맵으로 안내
-  </button>
-)}
         {item.lat && (
           <button className="tmap-btn" onClick={()=>openTmap(item.name, item.lat, item.lng)}>
             🗺 티맵으로 안내
@@ -478,6 +468,33 @@ function EditModal({ item, onSave, onClose }) {
   const [name, setName] = useState(item.name);
   const [time, setTime] = useState(item.time);
   const [memo, setMemo] = useState(item.memo);
+  const [useTmap, setUseTmap] = useState(!!(item.lat));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(
+    item.lat ? { lat: String(item.lat), lon: String(item.lng), display_name: `현재 좌표 (${item.lat}, ${item.lng})` } : null
+  );
+  const [searching, setSearching] = useState(false);
+
+  async function searchPlace() {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setSearchResults([]);
+    setSelectedPlace(null);
+    try {
+      const q = encodeURIComponent(searchQuery.trim() + " 제주");
+      const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=5&countrycodes=kr&accept-language=ko`;
+      const res = await fetch(url, { headers: { "Accept-Language": "ko" } });
+      const data = await res.json();
+      setSearchResults(data);
+      if (data.length === 0) alert("검색 결과가 없어요. 다른 키워드로 시도해보세요.");
+    } catch(e) {
+      alert("검색 실패: " + e.message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e=>e.stopPropagation()}>
@@ -485,12 +502,188 @@ function EditModal({ item, onSave, onClose }) {
         <div className="modal-label">장소/일정명</div>
         <input className="modal-input" value={name} onChange={e=>setName(e.target.value)} />
         <div className="modal-label">시간</div>
-        <input className="modal-input" value={time} onChange={e=>setTime(e.target.value)} />
+        <input className="modal-input" value={time} onChange={e=>setTime(e.target.value)} placeholder="예: 10:00 또는 오전" />
         <div className="modal-label">메모</div>
         <input className="modal-input" value={memo} onChange={e=>setMemo(e.target.value)} placeholder="메모 입력..." />
+
+        <div className="modal-label">티맵 안내</div>
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0'}}>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,cursor:'pointer'}}>
+            <input type="radio" name="tmap_edit" checked={!useTmap} onChange={()=>{setUseTmap(false);setSelectedPlace(null);setSearchResults([]);}} /> 사용 안 함
+          </label>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,cursor:'pointer'}}>
+            <input type="radio" name="tmap_edit" checked={useTmap} onChange={()=>setUseTmap(true)} /> 사용
+          </label>
+        </div>
+
+        {useTmap && (
+          <div style={{background:'var(--bg)',borderRadius:10,padding:'10px',marginBottom:4}}>
+            {selectedPlace ? (
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'var(--jeju-teal)',marginBottom:2}}>✅ {selectedPlace.display_name.split(",")[0]}</div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{selectedPlace.display_name}</div>
+                </div>
+                <button onClick={()=>{setSelectedPlace(null);setSearchResults([]);}} style={{background:'none',border:'none',color:'#aaa',cursor:'pointer',fontSize:16,flexShrink:0}}>✕</button>
+              </div>
+            ) : (
+              <>
+                <div style={{display:'flex',gap:6,marginBottom:6}}>
+                  <input
+                    className="modal-input"
+                    style={{flex:1,margin:0}}
+                    value={searchQuery}
+                    onChange={e=>setSearchQuery(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&searchPlace()}
+                    placeholder="장소명 검색 (예: 에코랜드)"
+                  />
+                  <button onClick={searchPlace} disabled={searching}
+                    style={{background:'var(--jeju-teal)',color:'#fff',border:'none',borderRadius:10,padding:'0 12px',fontSize:12,fontWeight:700,cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}>
+                    {searching ? "…" : "검색"}
+                  </button>
+                </div>
+                {searchResults.length > 0 && (
+                  <div style={{maxHeight:140,overflowY:'auto',border:'1px solid var(--border)',borderRadius:8,background:'#fff'}}>
+                    {searchResults.map((r,i)=>(
+                      <div key={i}
+                        onClick={()=>{setSelectedPlace(r);setSearchResults([]);}}
+                        style={{padding:'8px 10px',borderBottom:'1px solid var(--border)',cursor:'pointer',fontSize:12}}
+                      >
+                        <div style={{fontWeight:700,color:'var(--text)'}}>{r.display_name.split(",")[0]}</div>
+                        <div style={{color:'var(--text-muted)',fontSize:10,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.display_name}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <div className="modal-btns">
           <button className="modal-btn-cancel" onClick={onClose}>취소</button>
-          <button className="modal-btn-save" onClick={()=>onSave({...item, name, time, memo})}>저장</button>
+          <button className="modal-btn-save" onClick={()=>onSave({
+            ...item, name, time, memo,
+            lat: useTmap && selectedPlace ? parseFloat(selectedPlace.lat) : null,
+            lng: useTmap && selectedPlace ? parseFloat(selectedPlace.lon) : null
+          })}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddScheduleModal({ onSave, onClose }) {
+  const [name, setName] = useState("");
+  const [time, setTime] = useState("");
+  const [memo, setMemo] = useState("");
+  const [useTmap, setUseTmap] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [searching, setSearching] = useState(false);
+
+  async function searchPlace() {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setSearchResults([]);
+    setSelectedPlace(null);
+    try {
+      // 제주도 지역 bias를 위해 viewbox 설정
+      const q = encodeURIComponent(searchQuery.trim() + " 제주");
+      const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=5&countrycodes=kr&accept-language=ko`;
+      const res = await fetch(url, { headers: { "Accept-Language": "ko" } });
+      const data = await res.json();
+      setSearchResults(data);
+      if (data.length === 0) alert("검색 결과가 없어요. 다른 키워드로 시도해보세요.");
+    } catch(e) {
+      alert("검색 실패: " + e.message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="modal-title">일정 추가</div>
+        <div className="modal-label">장소/일정명 *</div>
+        <input className="modal-input" value={name} onChange={e=>setName(e.target.value)} placeholder="예: 에코랜드 테마파크" />
+        <div className="modal-label">시간</div>
+        <input className="modal-input" value={time} onChange={e=>setTime(e.target.value)} placeholder="예: 10:00 또는 오전" />
+        <div className="modal-label">메모</div>
+        <input className="modal-input" value={memo} onChange={e=>setMemo(e.target.value)} placeholder="메모 입력..." />
+
+        <div className="modal-label">티맵 안내 여부</div>
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'8px 0'}}>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,cursor:'pointer'}}>
+            <input type="radio" name="tmap_add" checked={!useTmap} onChange={()=>{setUseTmap(false);setSelectedPlace(null);setSearchResults([]);}} /> 사용 안 함
+          </label>
+          <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,cursor:'pointer'}}>
+            <input type="radio" name="tmap_add" checked={useTmap} onChange={()=>setUseTmap(true)} /> 사용
+          </label>
+        </div>
+
+        {useTmap && (
+          <div style={{background:'var(--bg)',borderRadius:10,padding:'10px',marginBottom:4}}>
+            {selectedPlace ? (
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:'var(--jeju-teal)',marginBottom:2}}>✅ {selectedPlace.display_name.split(",")[0]}</div>
+                  <div style={{fontSize:10,color:'var(--text-muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{selectedPlace.display_name}</div>
+                </div>
+                <button onClick={()=>{setSelectedPlace(null);setSearchResults([]);}} style={{background:'none',border:'none',color:'#aaa',cursor:'pointer',fontSize:16,flexShrink:0}}>✕</button>
+              </div>
+            ) : (
+              <>
+                <div style={{display:'flex',gap:6,marginBottom:6}}>
+                  <input
+                    className="modal-input"
+                    style={{flex:1,margin:0}}
+                    value={searchQuery}
+                    onChange={e=>setSearchQuery(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&searchPlace()}
+                    placeholder="장소명 검색 (예: 에코랜드)"
+                  />
+                  <button onClick={searchPlace} disabled={searching}
+                    style={{background:'var(--jeju-teal)',color:'#fff',border:'none',borderRadius:10,padding:'0 12px',fontSize:12,fontWeight:700,cursor:'pointer',flexShrink:0,fontFamily:'inherit'}}>
+                    {searching ? "…" : "검색"}
+                  </button>
+                </div>
+                {searchResults.length > 0 && (
+                  <div style={{maxHeight:140,overflowY:'auto',border:'1px solid var(--border)',borderRadius:8,background:'#fff'}}>
+                    {searchResults.map((r,i)=>(
+                      <div key={i}
+                        onClick={()=>{setSelectedPlace(r);setSearchResults([]);}}
+                        style={{padding:'8px 10px',borderBottom:'1px solid var(--border)',cursor:'pointer',fontSize:12}}
+                      >
+                        <div style={{fontWeight:700,color:'var(--text)'}}>{r.display_name.split(",")[0]}</div>
+                        <div style={{color:'var(--text-muted)',fontSize:10,marginTop:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.display_name}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="modal-btns">
+          <button className="modal-btn-cancel" onClick={onClose}>취소</button>
+          <button className="modal-btn-save" onClick={()=>{
+            if(!name.trim()) { alert("일정명을 입력하세요"); return; }
+            if(useTmap && !selectedPlace) { alert("티맵 사용 시 장소를 검색해서 선택해주세요"); return; }
+            onSave({
+              id:`new-${Date.now()}`,
+              name: name.trim(),
+              time: time.trim() || "미정",
+              memo: memo.trim(),
+              color: "#9e9e9e",
+              tags: ["추가"],
+              lat: selectedPlace ? parseFloat(selectedPlace.lat) : null,
+              lng: selectedPlace ? parseFloat(selectedPlace.lon) : null
+            });
+          }}>추가</button>
         </div>
       </div>
     </div>
@@ -552,54 +745,23 @@ const [apiKeyInput, setApiKeyInput] = useState("");
 
   const [accoms, setAccoms] = useState(ACCOMMODATIONS);
   const [editItem, setEditItem] = useState(null);
-  // 1. 일정 저장 및 시간순 자동 정렬 로직
-const saveAndSortSchedule = (newSchedule) => {
-  const sortedSchedule = { ...newSchedule };
-  // 모든 날짜의 아이템을 시간순(HH:mm)으로 정렬
-  Object.keys(sortedSchedule).forEach(day => {
-    sortedSchedule[day].items.sort((a, b) => (a.time > b.time ? 1 : -1));
-  });
-  setSchedule(sortedSchedule);
-  db.ref("jeju_schedule").set(sortedSchedule);
-};
+  const [addScheduleOpen, setAddScheduleOpen] = useState(false);
 
-// 2. 티맵 안내 여부를 포함한 일정 추가 로직
-const addScheduleItem = () => {
-  const name = prompt("일정명:");
-  if (!name) return;
-  const time = prompt("시간 (예: 09:00):", "10:00");
-  
-  // 티맵 여부 선택
-  const useTmap = confirm("이 장소에 티맵 안내 버튼을 활성화할까요?");
-  let lat = null, lng = null;
-  if (useTmap) {
-    lat = prompt("위도(lat)를 입력하세요 (예: 33.4507):");
-    lng = prompt("경도(lng)를 입력하세요 (예: 126.5706):");
+  function timeToMinutes(t) {
+    if (!t) return 9999;
+    const m = t.match(/^(\d{1,2}):(\d{2})$/);
+    if (m) return parseInt(m[1])*60 + parseInt(m[2]);
+    return 9999;
+  }
+  function sortByTime(items) {
+    return [...items].sort((a,b) => timeToMinutes(a.time) - timeToMinutes(b.time));
   }
 
-  const newItem = { 
-    id: Date.now().toString(), 
-    time, 
-    name, 
-    memo: "", 
-    color: "#00a896", 
-    tags: ["추가"], 
-    lat: lat ? parseFloat(lat) : null, 
-    lng: lng ? parseFloat(lng) : null 
-  };
-
-  const next = { 
-    ...schedule, 
-    [activeDay]: { 
-      ...schedule[activeDay], 
-      items: [...schedule[activeDay].items, newItem] 
-    } 
-  };
-  saveAndSortSchedule(next); // 정렬 후 저장
-};
   const [messages, setMessages] = useState([
     { role:"ai", text:"안녕하세요! 제주 여행 AI 도우미예요 🌊\n맛집, 날씨, 관광지, 코스 추천 등 뭐든 물어보세요!\n위치 공유하면 주변 정보도 알려드려요." }
   ]);
+  const [chatSessions, setChatSessions] = useState([]);
+  const [showChatList, setShowChatList] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState(null);
@@ -643,12 +805,19 @@ const addScheduleItem = () => {
       if (snap.val()) setMessages(snap.val());
     });
 
+    // 저장된 채팅 세션 로드
+    const sessRef = db.ref("jeju_chat_sessions");
+    sessRef.on("value", (snap) => {
+      if (snap.val()) setChatSessions(snap.val());
+    });
+
     return () => {
       scheduleRef.off();
       flightsRef.off();
       accomsRef.off();
       keyRef.off();
       chatRef.off();
+      sessRef.off();
     };
   }, []);
 
@@ -691,6 +860,39 @@ const addScheduleItem = () => {
       },
       () => alert("위치 권한을 허용해주세요.")
     );
+  }
+
+  // 채팅 세션 저장
+  function saveChatSession() {
+    const userMsgs = messages.filter(m=>m.role==="user");
+    if(userMsgs.length === 0) { alert("저장할 대화가 없습니다"); return; }
+    const now = new Date();
+    const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
+    const firstUser = userMsgs[0].text;
+    const title = firstUser.length > 20 ? firstUser.slice(0,20)+"…" : firstUser;
+    const sess = { id: Date.now(), title, date: dateStr, messages: [...messages] };
+    const next = [sess, ...chatSessions];
+    setChatSessions(next);
+    db.ref("jeju_chat_sessions").set(next);
+    alert("대화가 저장되었습니다 ✅");
+  }
+
+  function deleteChatSession(id) {
+    if(!confirm("이 대화를 삭제할까요?")) return;
+    const next = chatSessions.filter(s=>s.id!==id);
+    setChatSessions(next);
+    db.ref("jeju_chat_sessions").set(next);
+  }
+
+  function clearAllChatSessions() {
+    if(!confirm("저장된 대화 전체를 삭제할까요?")) return;
+    setChatSessions([]);
+    db.ref("jeju_chat_sessions").remove();
+  }
+
+  function newChatSession() {
+    setMessages([{ role:"ai", text:"안녕하세요! 제주 여행 AI 도우미예요 🌊\n맛집, 날씨, 관광지, 코스 추천 등 뭐든 물어보세요!" }]);
+    db.ref("jeju_chat").set([{ role:"ai", text:"안녕하세요! 제주 여행 AI 도우미예요 🌊\n맛집, 날씨, 관광지, 코스 추천 등 뭐든 물어보세요!" }]);
   }
 
   // API 키 저장
@@ -894,14 +1096,7 @@ async function sendMessage(text) {
             <div style={{padding:'0 12px'}}>
               <button
                 style={{width:'100%',padding:'12px',background:'var(--bg)',border:'1.5px dashed var(--border)',borderRadius:12,fontSize:14,color:'var(--text-muted)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}
-                onClick={()=>{
-                  const name = prompt("추가할 일정명:");
-                  if(!name) return;
-                  const time = prompt("시간 (예: 10:00):");
-                  const memo = prompt("메모 (선택):");
-                  const newItem = {id:`new-${Date.now()}`, time:time||"미정", name, memo:memo||"", color:"#9e9e9e", tags:["추가"], lat:null, lng:null};
-                  setSchedule(prev=>({...prev, [activeDay]:{...prev[activeDay], items:[...prev[activeDay].items, newItem]}}));
-                }}>
+                onClick={()=>setAddScheduleOpen(true)}>
                 + 일정 추가
               </button>
             </div>
@@ -910,22 +1105,56 @@ async function sendMessage(text) {
 
         {/* ── AI CHAT ── */}
         {tab==="ai" && (
-      <div className="chat-container">
-    {/* 상단 삭제 버튼 추가 */}
-    <div style={{padding: '10px', display: 'flex', justifyContent: 'flex-end'}}>
-      <button 
-        onClick={() => {
-          if(confirm("전체 대화 내역을 삭제하시겠습니까?")) {
-            setMessages([]);
-            db.ref("jeju_chat").remove();
-          }
-        }}
-        style={{fontSize: '11px', color: '#999', background: 'none', border: '1px solid #ddd', padding: '4px 8px', borderRadius: '4px'}}
-      >
-        대화 전체 삭제 🗑️
-      </button>
-    </div>
           <div className="chat-container">
+            {/* 대화 목록 헤더 바 */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 12px 6px',borderBottom:'1px solid var(--border)',background:'#fff',flexShrink:0}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <button
+                  onClick={()=>setShowChatList(v=>!v)}
+                  style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',color:'var(--jeju-teal)',fontFamily:'inherit',display:'flex',alignItems:'center',gap:4}}
+                >
+                  💬 대화목록 {showChatList ? '▲' : '▼'}
+                </button>
+                {chatSessions.length > 0 && (
+                  <span style={{fontSize:10,color:'var(--text-muted)',background:'var(--bg)',borderRadius:10,padding:'2px 7px',border:'1px solid var(--border)'}}>{chatSessions.length}개</span>
+                )}
+              </div>
+              <div style={{display:'flex',gap:6}}>
+                <button
+                  onClick={saveChatSession}
+                  style={{background:'var(--jeju-teal)',color:'#fff',border:'none',borderRadius:8,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
+                >💾 저장</button>
+                <button
+                  onClick={clearAllChatSessions}
+                  style={{background:'#ff6b6b',color:'#fff',border:'none',borderRadius:8,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}
+                >🗑 전체삭제</button>
+              </div>
+            </div>
+
+            {/* 대화 목록 드롭다운 */}
+            {showChatList && (
+              <div style={{background:'#f9fdfb',borderBottom:'1px solid var(--border)',maxHeight:200,overflowY:'auto',flexShrink:0}}>
+                {chatSessions.length === 0 ? (
+                  <div style={{padding:'16px 12px',fontSize:12,color:'#aaa',textAlign:'center'}}>저장된 대화가 없습니다</div>
+                ) : (
+                  chatSessions.map((sess,i)=>(
+                    <div key={sess.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',borderBottom:'1px solid var(--border)',cursor:'pointer'}}
+                      onClick={()=>{ setMessages(sess.messages); setShowChatList(false); }}
+                    >
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {sess.title}
+                        </div>
+                        <div style={{fontSize:10,color:'var(--text-muted)',marginTop:1}}>{sess.date} · {sess.messages.length}개 메시지</div>
+                      </div>
+                      <button onClick={e=>{e.stopPropagation(); deleteChatSession(sess.id);}}
+                        style={{background:'none',border:'none',fontSize:14,cursor:'pointer',color:'#ccc',padding:'0 0 0 8px',flexShrink:0}}>✕</button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
             <div className="suggestions">
               {SUGGESTIONS.map(s=>(
                 <button key={s} className="suggestion-btn" onClick={()=>sendMessage(s)}>{s}</button>
@@ -950,6 +1179,12 @@ async function sendMessage(text) {
               <button className="chat-location-btn" onClick={getLocation}>
                 📍 {location ? `위치 공유됨 (${location.lat.toFixed(3)}, ${location.lng.toFixed(3)})` : "현재 위치 공유"}
               </button>
+              <div style={{display:'flex',gap:6,marginBottom:2}}>
+                <button onClick={newChatSession}
+                  style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'5px 10px',fontSize:11,fontWeight:700,cursor:'pointer',color:'var(--text-muted)',fontFamily:'inherit'}}>
+                  ✏️ 새 대화
+                </button>
+              </div>
               <div className="chat-row">
                 <input
                   className="chat-input"
@@ -1015,6 +1250,18 @@ async function sendMessage(text) {
       </nav>
 
       {editItem && <EditModal item={editItem} onSave={handleEditSave} onClose={()=>setEditItem(null)} />}
+      {addScheduleOpen && (
+        <AddScheduleModal
+          onClose={()=>setAddScheduleOpen(false)}
+          onSave={(newItem)=>{
+            const next = {...schedule};
+            const updatedItems = sortByTime([...next[activeDay].items, newItem]);
+            next[activeDay] = {...next[activeDay], items: updatedItems};
+            saveSchedule(next);
+            setAddScheduleOpen(false);
+          }}
+        />
+      )}
       {/* [추가] 항공 정보 수정 모달 */}
 {editFlight && (
   <div className="modal-overlay" onClick={() => setEditFlight(null)}>

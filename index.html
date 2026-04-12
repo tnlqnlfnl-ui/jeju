@@ -542,6 +542,51 @@ const [apiKeyInput, setApiKeyInput] = useState("");
 
   const [accoms, setAccoms] = useState(ACCOMMODATIONS);
   const [editItem, setEditItem] = useState(null);
+  // 1. 일정 저장 및 시간순 자동 정렬 로직
+const saveAndSortSchedule = (newSchedule) => {
+  const sortedSchedule = { ...newSchedule };
+  // 모든 날짜의 아이템을 시간순(HH:mm)으로 정렬
+  Object.keys(sortedSchedule).forEach(day => {
+    sortedSchedule[day].items.sort((a, b) => (a.time > b.time ? 1 : -1));
+  });
+  setSchedule(sortedSchedule);
+  db.ref("jeju_schedule").set(sortedSchedule);
+};
+
+// 2. 티맵 안내 여부를 포함한 일정 추가 로직
+const addScheduleItem = () => {
+  const name = prompt("일정명:");
+  if (!name) return;
+  const time = prompt("시간 (예: 09:00):", "10:00");
+  
+  // 티맵 여부 선택
+  const useTmap = confirm("이 장소에 티맵 안내 버튼을 활성화할까요?");
+  let lat = null, lng = null;
+  if (useTmap) {
+    lat = prompt("위도(lat)를 입력하세요 (예: 33.4507):");
+    lng = prompt("경도(lng)를 입력하세요 (예: 126.5706):");
+  }
+
+  const newItem = { 
+    id: Date.now().toString(), 
+    time, 
+    name, 
+    memo: "", 
+    color: "#00a896", 
+    tags: ["추가"], 
+    lat: lat ? parseFloat(lat) : null, 
+    lng: lng ? parseFloat(lng) : null 
+  };
+
+  const next = { 
+    ...schedule, 
+    [activeDay]: { 
+      ...schedule[activeDay], 
+      items: [...schedule[activeDay].items, newItem] 
+    } 
+  };
+  saveAndSortSchedule(next); // 정렬 후 저장
+};
   const [messages, setMessages] = useState([
     { role:"ai", text:"안녕하세요! 제주 여행 AI 도우미예요 🌊\n맛집, 날씨, 관광지, 코스 추천 등 뭐든 물어보세요!\n위치 공유하면 주변 정보도 알려드려요." }
   ]);
